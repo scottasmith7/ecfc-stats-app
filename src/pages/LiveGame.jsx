@@ -14,26 +14,70 @@ import GoalAssistModal from '../components/game/GoalAssistModal'
 import Modal from '../components/common/Modal'
 import Button from '../components/common/Button'
 
-// Hook to detect landscape orientation
+// Helper to check if device is in landscape orientation
+const checkIsLandscape = () => {
+  if (typeof window === 'undefined') return false
+
+  // Method 1: Screen Orientation API (most reliable on modern mobile browsers)
+  if (screen.orientation?.type) {
+    return screen.orientation.type.includes('landscape')
+  }
+
+  // Method 2: window.orientation (deprecated but still works on older iOS)
+  if (typeof window.orientation === 'number') {
+    return Math.abs(window.orientation) === 90
+  }
+
+  // Method 3: matchMedia query
+  if (window.matchMedia) {
+    const mediaQuery = window.matchMedia('(orientation: landscape)')
+    if (mediaQuery.matches) return true
+  }
+
+  // Method 4: Compare dimensions (fallback)
+  return window.innerWidth > window.innerHeight
+}
+
+// Hook to detect landscape orientation with multiple methods
 const useIsLandscape = () => {
-  const [isLandscape, setIsLandscape] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth > window.innerHeight
-    }
-    return false
-  })
+  const [isLandscape, setIsLandscape] = useState(checkIsLandscape)
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight)
+    const updateOrientation = () => {
+      // Small delay to let the browser finish rotation
+      setTimeout(() => {
+        setIsLandscape(checkIsLandscape())
+      }, 100)
     }
 
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('orientationchange', handleResize)
+    // Listen to Screen Orientation API
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', updateOrientation)
+    }
+
+    // Listen to matchMedia changes
+    let mediaQuery = null
+    if (window.matchMedia) {
+      mediaQuery = window.matchMedia('(orientation: landscape)')
+      mediaQuery.addEventListener('change', updateOrientation)
+    }
+
+    // Fallback listeners
+    window.addEventListener('resize', updateOrientation)
+    window.addEventListener('orientationchange', updateOrientation)
+
+    // Initial check after mount
+    updateOrientation()
 
     return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleResize)
+      if (screen.orientation) {
+        screen.orientation.removeEventListener('change', updateOrientation)
+      }
+      if (mediaQuery) {
+        mediaQuery.removeEventListener('change', updateOrientation)
+      }
+      window.removeEventListener('resize', updateOrientation)
+      window.removeEventListener('orientationchange', updateOrientation)
     }
   }, [])
 
@@ -45,6 +89,7 @@ const LiveGame = () => {
   const navigate = useNavigate()
   const gameId = parseInt(id)
   const isLandscape = useIsLandscape()
+  const [forceShowGame, setForceShowGame] = useState(false)
 
   const [game, setGame] = useState(null)
   const [players, setPlayers] = useState([])
@@ -245,8 +290,8 @@ const LiveGame = () => {
     )
   }
 
-  // Portrait mode - show rotate overlay
-  if (!isLandscape) {
+  // Portrait mode - show rotate overlay (unless user chose to continue anyway)
+  if (!isLandscape && !forceShowGame) {
     return (
       <div className="h-screen bg-slate-900 flex flex-col items-center justify-center text-center p-8">
         {/* Rotating phone icon */}
@@ -296,17 +341,25 @@ const LiveGame = () => {
         <h2 className="text-xl font-semibold text-white mb-2">
           Rotate Your Phone
         </h2>
-        <p className="text-slate-400 mb-6">
+        <p className="text-slate-400 mb-4">
           The Live Game tracker works best in landscape mode
         </p>
 
         {/* Game info so they know it's loaded */}
-        <div className="bg-slate-800 rounded-lg px-4 py-2 text-sm">
+        <div className="bg-slate-800 rounded-lg px-4 py-2 text-sm mb-6">
           <span className="text-slate-400">vs </span>
           <span className="text-white font-medium">{game.opponent}</span>
           <span className="text-slate-500 mx-2">|</span>
           <span className="text-slate-400">Half {game.currentHalf}</span>
         </div>
+
+        {/* Continue anyway button for accessibility */}
+        <button
+          onClick={() => setForceShowGame(true)}
+          className="text-slate-500 text-sm underline hover:text-slate-300 transition-colors"
+        >
+          Continue in portrait anyway
+        </button>
       </div>
     )
   }
