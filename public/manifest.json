@@ -4,7 +4,7 @@
   "description": "Track soccer stats for ECFC U16 girls team during live games",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#1e40af",
   "icons": [

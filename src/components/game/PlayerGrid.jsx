@@ -25,13 +25,13 @@ const PlayerGrid = ({
   if (compact) {
     // Compact landscape mode - vertical scrolling list on left side
     return (
-      <div className="flex flex-col min-h-0 bg-slate-900 border-r border-slate-700">
+      <div className="flex flex-col min-h-0 h-full bg-slate-900">
         {/* Active players - scrollable vertical grid */}
         <div className="flex-1 overflow-y-auto min-h-0">
-          <div className="text-[10px] text-slate-500 px-2 pt-1 font-semibold sticky top-0 bg-slate-900 z-10">
+          <div className="text-[10px] text-slate-500 px-1.5 pt-1 font-semibold sticky top-0 bg-slate-900 z-10">
             ON ({activePlayers.length})
           </div>
-          <div className="grid grid-cols-2 gap-1 p-1">
+          <div className="grid grid-cols-2 gap-0.5 p-0.5">
             {activePlayers.map(player => (
               <CompactPlayerTile
                 key={player.id}
@@ -47,10 +47,10 @@ const PlayerGrid = ({
           {/* Bench players */}
           {benchPlayers.length > 0 && (
             <>
-              <div className="text-[10px] text-slate-500 px-2 pt-1 font-semibold sticky top-0 bg-slate-900 z-10">
+              <div className="text-[10px] text-slate-500 px-1.5 pt-1 font-semibold sticky top-0 bg-slate-900 z-10">
                 BENCH ({benchPlayers.length})
               </div>
-              <div className="grid grid-cols-2 gap-1 p-1">
+              <div className="grid grid-cols-2 gap-0.5 p-0.5">
                 {benchPlayers.map(player => (
                   <CompactPlayerTile
                     key={player.id}
@@ -127,26 +127,26 @@ const CompactPlayerTile = ({
     <button
       onClick={onClick}
       className={`
-        p-1.5 rounded-lg border-2 transition-all duration-150 active:scale-95
-        flex flex-col items-center justify-center min-h-[60px]
+        p-1 rounded-md border-2 transition-all duration-150 active:scale-95
+        flex flex-col items-center justify-center min-h-[52px]
         ${isSelected ? 'border-ecfc-green bg-slate-700' : 'border-transparent bg-slate-800'}
         ${isOnBench ? 'opacity-50' : ''}
       `}
     >
       {/* Jersey number */}
-      <span className="text-lg font-bold text-white leading-none">
+      <span className="text-base font-bold text-white leading-none">
         #{player.jerseyNumber}
       </span>
 
       {/* Playing time */}
       {playingTime !== null && (
-        <span className="text-[10px] text-ecfc-green font-mono leading-tight">
+        <span className="text-[9px] text-ecfc-green font-mono leading-tight mt-0.5">
           {formatPlayingTime(playingTime)}
         </span>
       )}
 
       {/* Mini stats */}
-      <span className="text-[9px] text-slate-500 truncate w-full text-center leading-tight">
+      <span className="text-[8px] text-slate-500 truncate w-full text-center leading-tight">
         {miniStats}
       </span>
     </button>

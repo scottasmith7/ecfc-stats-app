@@ -6,7 +6,8 @@ const StatButton = ({
   onClick,
   disabled = false,
   category = 'other',
-  compact = false
+  compact = false,
+  className = ''
 }) => {
   const [flash, setFlash] = useState(false)
   const stat = STAT_TYPES[statType]
@@ -48,6 +49,7 @@ const StatButton = ({
         ${disabled ? 'opacity-40 cursor-not-allowed' : ''}
         ${flash ? 'flash-green' : ''}
         ${isGoal ? 'font-bold' : ''}
+        ${className}
       `}
     >
       {label}

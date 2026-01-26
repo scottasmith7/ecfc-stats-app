@@ -245,117 +245,76 @@ const LiveGame = () => {
     )
   }
 
-  // Landscape layout - two column with top bar
-  if (isLandscape) {
+  // Portrait mode - show rotate overlay
+  if (!isLandscape) {
     return (
-      <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
-        {/* Compact Top Bar */}
-        <GameClock
-          clockTime={clockTime}
-          isRunning={isRunning}
-          currentHalf={game.currentHalf}
-          isPastHalfLength={isPastHalfLength}
-          onToggle={toggleClock}
-          onEndHalf={() => setShowEndConfirm(true)}
-          onSubs={() => setShowSubsModal(true)}
-          homeScore={game.homeScore || 0}
-          awayScore={game.awayScore || 0}
-          opponent={game.opponent}
-          compact={true}
-        />
-
-        {/* Two Column Layout */}
-        <div className="flex-1 flex min-h-0">
-          {/* Left: Player Grid */}
-          <div className="w-[180px] shrink-0">
-            <PlayerGrid
-              players={players.filter(p => lineup.some(l => l.playerId === p.id))}
-              activePlayerIds={activePlayerIds}
-              selectedPlayerId={selectedPlayerId}
-              playerEvents={playerEventsMap}
-              playerLineups={playerLineupsMap}
-              clockTime={clockTime}
-              onSelectPlayer={setSelectedPlayerId}
-              compact={true}
+      <div className="h-screen bg-slate-900 flex flex-col items-center justify-center text-center p-8">
+        {/* Rotating phone icon */}
+        <div className="mb-6">
+          <svg
+            className="w-24 h-24 text-blue-500"
+            viewBox="0 0 100 100"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
+            {/* Phone outline */}
+            <rect
+              x="30"
+              y="15"
+              width="40"
+              height="70"
+              rx="5"
+              className="animate-pulse"
             />
-          </div>
-
-          {/* Right: Stat Buttons */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <StatPanel
-              selectedPlayer={selectedPlayer}
-              onStatRecord={handleStatRecord}
-              disabled={!isRunning}
-              compact={true}
+            {/* Home button */}
+            <circle cx="50" cy="75" r="4" fill="currentColor" />
+            {/* Rotation arrows */}
+            <path
+              d="M15 50 C15 30, 30 15, 50 15"
+              strokeLinecap="round"
+              className="text-green-500"
             />
-          </div>
+            <path
+              d="M50 15 L45 20 M50 15 L55 20"
+              strokeLinecap="round"
+              className="text-green-500"
+            />
+            <path
+              d="M85 50 C85 70, 70 85, 50 85"
+              strokeLinecap="round"
+              className="text-green-500"
+            />
+            <path
+              d="M50 85 L45 80 M50 85 L55 80"
+              strokeLinecap="round"
+              className="text-green-500"
+            />
+          </svg>
         </div>
 
-        {/* Compact Undo - just last event */}
-        <div className="shrink-0">
-          <UndoPanel
-            events={events}
-            players={players}
-            onUndo={handleUndo}
-            compact={true}
-          />
+        <h2 className="text-xl font-semibold text-white mb-2">
+          Rotate Your Phone
+        </h2>
+        <p className="text-slate-400 mb-6">
+          The Live Game tracker works best in landscape mode
+        </p>
+
+        {/* Game info so they know it's loaded */}
+        <div className="bg-slate-800 rounded-lg px-4 py-2 text-sm">
+          <span className="text-slate-400">vs </span>
+          <span className="text-white font-medium">{game.opponent}</span>
+          <span className="text-slate-500 mx-2">|</span>
+          <span className="text-slate-400">Half {game.currentHalf}</span>
         </div>
-
-        {/* Modals */}
-        <SubstitutionModal
-          isOpen={showSubsModal}
-          onClose={() => setShowSubsModal(false)}
-          players={players.filter(p => lineup.some(l => l.playerId === p.id))}
-          activePlayerIds={activePlayerIds}
-          onSubstitute={handleSubstitute}
-        />
-
-        <GoalAssistModal
-          isOpen={showGoalModal}
-          onClose={() => {
-            setShowGoalModal(false)
-            setGoalScorer(null)
-          }}
-          scorer={goalScorer}
-          players={players}
-          activePlayerIds={activePlayerIds}
-          onSelect={handleGoalAssist}
-        />
-
-        <Modal
-          isOpen={showEndConfirm}
-          onClose={() => setShowEndConfirm(false)}
-          title={game.currentHalf === 1 ? 'End First Half?' : 'End Game?'}
-          footer={
-            <>
-              <Button variant="secondary" onClick={() => setShowEndConfirm(false)}>
-                Cancel
-              </Button>
-              <Button variant={game.currentHalf === 1 ? 'primary' : 'success'} onClick={handleEndAction}>
-                {game.currentHalf === 1 ? 'End Half' : 'End Game'}
-              </Button>
-            </>
-          }
-        >
-          <p className="text-slate-300">
-            {game.currentHalf === 1
-              ? 'This will pause the clock and prepare for the second half.'
-              : 'This will end the game and save all stats.'}
-          </p>
-          <p className="text-slate-400 mt-2">
-            Current time: {formatTime(clockTime)}
-          </p>
-        </Modal>
-
-        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </div>
     )
   }
 
-  // Portrait layout - original vertical stack
+  // Landscape layout - optimized two column with top bar
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
-      {/* Clock and Score Header */}
+    <div className="h-screen bg-slate-900 flex flex-col overflow-hidden">
+      {/* Compact Top Bar */}
       <GameClock
         clockTime={clockTime}
         isRunning={isRunning}
@@ -367,34 +326,47 @@ const LiveGame = () => {
         homeScore={game.homeScore || 0}
         awayScore={game.awayScore || 0}
         opponent={game.opponent}
+        compact={true}
       />
 
-      {/* Player Grid */}
-      <PlayerGrid
-        players={players.filter(p => lineup.some(l => l.playerId === p.id))}
-        activePlayerIds={activePlayerIds}
-        selectedPlayerId={selectedPlayerId}
-        playerEvents={playerEventsMap}
-        playerLineups={playerLineupsMap}
-        clockTime={clockTime}
-        onSelectPlayer={setSelectedPlayerId}
-      />
+      {/* Two Column Layout */}
+      <div className="flex-1 flex min-h-0">
+        {/* Left: Player Grid - narrower for more stat space */}
+        <div className="w-[140px] shrink-0 border-r border-slate-700">
+          <PlayerGrid
+            players={players.filter(p => lineup.some(l => l.playerId === p.id))}
+            activePlayerIds={activePlayerIds}
+            selectedPlayerId={selectedPlayerId}
+            playerEvents={playerEventsMap}
+            playerLineups={playerLineupsMap}
+            clockTime={clockTime}
+            onSelectPlayer={setSelectedPlayerId}
+            compact={true}
+          />
+        </div>
 
-      {/* Stat Buttons */}
-      <StatPanel
-        selectedPlayer={selectedPlayer}
-        onStatRecord={handleStatRecord}
-        disabled={!isRunning}
-      />
+        {/* Right: Stat Buttons - full remaining width */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <StatPanel
+            selectedPlayer={selectedPlayer}
+            onStatRecord={handleStatRecord}
+            disabled={!isRunning}
+            compact={true}
+          />
+        </div>
+      </div>
 
-      {/* Undo Panel */}
-      <UndoPanel
-        events={events}
-        players={players}
-        onUndo={handleUndo}
-      />
+      {/* Compact Undo - just last event */}
+      <div className="shrink-0">
+        <UndoPanel
+          events={events}
+          players={players}
+          onUndo={handleUndo}
+          compact={true}
+        />
+      </div>
 
-      {/* Substitution Modal */}
+      {/* Modals */}
       <SubstitutionModal
         isOpen={showSubsModal}
         onClose={() => setShowSubsModal(false)}
@@ -403,7 +375,6 @@ const LiveGame = () => {
         onSubstitute={handleSubstitute}
       />
 
-      {/* Goal Assist Modal */}
       <GoalAssistModal
         isOpen={showGoalModal}
         onClose={() => {
@@ -416,7 +387,6 @@ const LiveGame = () => {
         onSelect={handleGoalAssist}
       />
 
-      {/* End Half/Game Confirmation */}
       <Modal
         isOpen={showEndConfirm}
         onClose={() => setShowEndConfirm(false)}
@@ -442,7 +412,6 @@ const LiveGame = () => {
         </p>
       </Modal>
 
-      {/* Toast Notifications */}
       <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   )
