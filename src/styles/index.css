@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-slate-900 text-white min-h-screen;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-3 rounded-lg font-semibold transition-all duration-150 active:scale-95 min-h-touch min-w-touch flex items-center justify-center;
+  }
+
+  .btn-primary {
+    @apply bg-ecfc-blue hover:bg-blue-700 text-white;
+  }
+
+  .btn-success {
+    @apply bg-green-600 hover:bg-green-700 text-white;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white;
+  }
+
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white;
+  }
+
+  .stat-btn {
+    @apply px-3 py-2 rounded-lg font-medium text-sm transition-all duration-150 active:scale-95 min-h-[44px] min-w-[70px];
+  }
+
+  .stat-btn-compact {
+    @apply px-2 py-1.5 rounded-md font-medium text-xs transition-all duration-150 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  .stat-btn-pass {
+    @apply bg-blue-600 hover:bg-blue-500 text-white;
+  }
+
+  .stat-btn-shoot {
+    @apply bg-orange-600 hover:bg-orange-500 text-white;
+  }
+
+  .stat-btn-dribble {
+    @apply bg-teal-600 hover:bg-teal-500 text-white;
+  }
+
+  .stat-btn-defend {
+    @apply bg-purple-600 hover:bg-purple-500 text-white;
+  }
+
+  .stat-btn-gk {
+    @apply bg-yellow-600 hover:bg-yellow-500 text-white;
+  }
+
+  .stat-btn-other {
+    @apply bg-slate-600 hover:bg-slate-500 text-white;
+  }
+
+  .player-tile {
+    @apply p-2 rounded-lg border-2 border-transparent transition-all duration-150 flex flex-col items-center justify-center min-w-[80px] min-h-[100px];
+  }
+
+  .player-tile-selected {
+    @apply border-ecfc-green bg-slate-700;
+  }
+
+  .player-tile-bench {
+    @apply opacity-50;
+  }
+
+  .card {
+    @apply bg-slate-800 rounded-xl p-4 shadow-lg;
+  }
+
+  .input {
+    @apply w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-ecfc-blue;
+  }
+
+  .nav-item {
+    @apply flex flex-col items-center justify-center py-2 px-3 text-slate-400 transition-colors;
+  }
+
+  .nav-item-active {
+    @apply text-ecfc-green;
+  }
+}
+
+@layer utilities {
+  .flash-green {
+    animation: flash-green 0.3s ease-out;
+  }
+
+  @keyframes flash-green {
+    0% { background-color: rgb(34, 197, 94); }
+    100% { background-color: inherit; }
+  }
+
+  .toast-enter {
+    animation: toast-enter 0.3s ease-out;
+  }
+
+  @keyframes toast-enter {
+    0% { transform: translateY(100%); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .toast-exit {
+    animation: toast-exit 0.3s ease-in forwards;
+  }
+
+  @keyframes toast-exit {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(100%); opacity: 0; }
+  }
+}
