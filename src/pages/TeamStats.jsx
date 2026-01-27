@@ -4,11 +4,13 @@ import { getAllPlayers, getAllGames } from '../db/database'
 import { db } from '../db/database'
 import { calculatePlayerStats, calculateDerivedStats, calculateSecondsPlayed, formatPlayingTime, formatPlayingTimeLong, getLeaderboard, calculatePossession } from '../utils/stats'
 import { POSITIONS } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 
 const TeamStats = () => {
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
   const [allLineups, setAllLineups] = useState([])
@@ -18,15 +20,23 @@ const TeamStats = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
-        const [playersData, gamesData, lineupsData, eventsData] = await Promise.all([
-          getAllPlayers(),
-          getAllGames(),
-          db.gameLineups.toArray(),
-          db.gameEvents.toArray()
+        const [playersData, gamesData] = await Promise.all([
+          getAllPlayers(activeTeam.id),
+          getAllGames(activeTeam.id)
         ])
+        const completedGames = gamesData.filter(g => g.status === 'completed')
+        const gameIds = completedGames.map(g => g.id)
+
+        // Only load lineups and events for this team's games
+        const [lineupsData, eventsData] = await Promise.all([
+          gameIds.length > 0 ? db.gameLineups.where('gameId').anyOf(gameIds).toArray() : [],
+          gameIds.length > 0 ? db.gameEvents.where('gameId').anyOf(gameIds).toArray() : []
+        ])
+
         setPlayers(playersData)
-        setGames(gamesData.filter(g => g.status === 'completed'))
+        setGames(completedGames)
         setAllLineups(lineupsData)
         setAllEvents(eventsData)
       } catch (err) {
@@ -35,8 +45,9 @@ const TeamStats = () => {
         setLoading(false)
       }
     }
+    setLoading(true)
     loadData()
-  }, [])
+  }, [activeTeam])
 
   // Calculate player stats map
   const playerStatsMap = useMemo(() => {

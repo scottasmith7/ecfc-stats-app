@@ -4,6 +4,7 @@ import { getGame, getGameLineup, getGameEvents, getAllPlayers } from '../db/data
 import { calculatePlayerStats, calculateDerivedStats, calculateSecondsPlayed, formatPlayingTime, calculatePossession } from '../utils/stats'
 import { exportGameCSV } from '../utils/export'
 import { formatDate, formatTime, POSITIONS, STAT_TYPES } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
@@ -11,6 +12,7 @@ import Button from '../components/common/Button'
 const GameReview = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const gameId = parseInt(id)
 
   const [game, setGame] = useState(null)
@@ -23,10 +25,11 @@ const GameReview = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
         const [gameData, playersData, lineupData, eventsData] = await Promise.all([
           getGame(gameId),
-          getAllPlayers(),
+          getAllPlayers(activeTeam.id),
           getGameLineup(gameId),
           getGameEvents(gameId)
         ])
@@ -41,7 +44,7 @@ const GameReview = () => {
       }
     }
     loadData()
-  }, [gameId])
+  }, [gameId, activeTeam])
 
   // Calculate player stats
   const playerStats = useMemo(() => {
@@ -101,7 +104,7 @@ const GameReview = () => {
 
   const handleExport = () => {
     if (game) {
-      exportGameCSV(game, players, lineup, events)
+      exportGameCSV(game, players, lineup, events, activeTeam?.teamName)
     }
   }
 
@@ -130,7 +133,7 @@ const GameReview = () => {
         <div className="card text-center">
           <div className="text-sm text-slate-400 mb-1">{formatDate(game.date)}</div>
           <div className="flex items-center justify-center gap-4 mb-2">
-            <span className="text-xl font-bold text-ecfc-green">ECFC</span>
+            <span className="text-xl font-bold text-ecfc-green truncate max-w-[100px]">{activeTeam?.teamName || 'Home'}</span>
             <span className={`text-4xl font-bold ${
               game.homeScore > game.awayScore ? 'text-green-400' :
               game.homeScore < game.awayScore ? 'text-red-400' : 'text-white'

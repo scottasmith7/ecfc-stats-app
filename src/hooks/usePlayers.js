@@ -1,39 +1,43 @@
 import { useState, useCallback, useEffect } from 'react'
 import { getAllPlayers, addPlayer, updatePlayer, deletePlayer } from '../db/database'
 
-export const usePlayers = () => {
+export const usePlayers = (teamId = null) => {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Load all players
+  // Load all players for the team
   const loadPlayers = useCallback(async () => {
     try {
-      const allPlayers = await getAllPlayers()
+      const allPlayers = await getAllPlayers(teamId)
       setPlayers(allPlayers)
     } catch (err) {
       console.error('Failed to load players:', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [teamId])
 
-  // Initial load
+  // Load when teamId changes
   useEffect(() => {
-    loadPlayers()
-  }, [loadPlayers])
+    if (teamId) {
+      setLoading(true)
+      loadPlayers()
+    }
+  }, [teamId, loadPlayers])
 
-  // Add a new player
+  // Add a new player (automatically assigned to current team)
   const createPlayer = useCallback(async (playerData) => {
     try {
-      const id = await addPlayer(playerData)
-      const newPlayer = { ...playerData, id }
+      const dataWithTeam = { ...playerData, teamId }
+      const id = await addPlayer(dataWithTeam)
+      const newPlayer = { ...dataWithTeam, id }
       setPlayers(prev => [...prev, newPlayer].sort((a, b) => a.jerseyNumber - b.jerseyNumber))
       return newPlayer
     } catch (err) {
       console.error('Failed to add player:', err)
       return null
     }
-  }, [])
+  }, [teamId])
 
   // Update a player
   const editPlayer = useCallback(async (id, updates) => {

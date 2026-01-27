@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getGame, updateGame, setGameLineup, getAllPlayers } from '../db/database'
 import { formatDate, POSITIONS } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Button from '../components/common/Button'
 
 const GameSetup = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const gameId = parseInt(id)
 
   const [game, setGame] = useState(null)
@@ -17,10 +19,11 @@ const GameSetup = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
         const [gameData, playersData] = await Promise.all([
           getGame(gameId),
-          getAllPlayers()
+          getAllPlayers(activeTeam.id)
         ])
         setGame(gameData)
         setPlayers(playersData)
@@ -31,7 +34,7 @@ const GameSetup = () => {
       }
     }
     loadData()
-  }, [gameId])
+  }, [gameId, activeTeam])
 
   const togglePlayer = (playerId) => {
     setSelectedIds(prev => {

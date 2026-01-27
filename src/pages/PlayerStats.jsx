@@ -5,12 +5,14 @@ import { db } from '../db/database'
 import { calculatePlayerStats, calculateDerivedStats, calculateSecondsPlayed, formatPlayingTime, formatPlayingTimeLong } from '../utils/stats'
 import { exportPlayerCSV } from '../utils/export'
 import { formatDate, POSITIONS, STAT_TYPES } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
 
 const PlayerStats = () => {
   const { id } = useParams()
+  const { activeTeam } = useTeam()
   const playerId = parseInt(id)
 
   const [player, setPlayer] = useState(null)
@@ -21,10 +23,11 @@ const PlayerStats = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
         const [playerData, gamesData, lineupsData, eventsData] = await Promise.all([
           getPlayer(playerId),
-          getAllGames(),
+          getAllGames(activeTeam.id),
           db.gameLineups.where('playerId').equals(playerId).toArray(),
           getPlayerAllEvents(playerId)
         ])
@@ -39,7 +42,7 @@ const PlayerStats = () => {
       }
     }
     loadData()
-  }, [playerId])
+  }, [playerId, activeTeam])
 
   // Calculate season totals
   const seasonStats = useMemo(() => {

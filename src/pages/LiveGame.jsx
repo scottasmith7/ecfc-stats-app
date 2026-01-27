@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getGame, updateGame, getGameLineup, updateLineupEntry, getAllPlayers } from '../db/database'
+import { useTeam } from '../context/TeamContext'
 import { useGameClock } from '../hooks/useGameClock'
 import { useGameEvents } from '../hooks/useGameEvents'
 import { useToast, ToastContainer } from '../components/common/Toast'
@@ -87,6 +88,7 @@ const useIsLandscape = () => {
 const LiveGame = () => {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const gameId = parseInt(id)
   const isLandscape = useIsLandscape()
   const [forceShowGame, setForceShowGame] = useState(false)
@@ -118,10 +120,11 @@ const LiveGame = () => {
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
         const [gameData, playersData, lineupData] = await Promise.all([
           getGame(gameId),
-          getAllPlayers(),
+          getAllPlayers(activeTeam.id),
           getGameLineup(gameId)
         ])
         setGame(gameData)
@@ -134,7 +137,7 @@ const LiveGame = () => {
       }
     }
     loadData()
-  }, [gameId])
+  }, [gameId, activeTeam])
 
   // Game clock hook
   const {

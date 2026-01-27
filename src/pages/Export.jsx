@@ -3,12 +3,14 @@ import { getAllPlayers, getAllGames, exportAllData, importAllData } from '../db/
 import { db } from '../db/database'
 import { exportGameCSV, exportPlayerCSV, exportSeasonSummaryCSV, exportBackupJSON, readRestoreFile } from '../utils/export'
 import { formatDate } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 
 const Export = () => {
+  const { activeTeam, refreshTeams } = useTeam()
   const [players, setPlayers] = useState([])
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
@@ -21,10 +23,11 @@ const Export = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      if (!activeTeam) return
       try {
         const [playersData, gamesData] = await Promise.all([
-          getAllPlayers(),
-          getAllGames()
+          getAllPlayers(activeTeam.id),
+          getAllGames(activeTeam.id)
         ])
         setPlayers(playersData)
         setGames(gamesData.filter(g => g.status === 'completed'))
@@ -34,8 +37,9 @@ const Export = () => {
         setLoading(false)
       }
     }
+    setLoading(true)
     loadData()
-  }, [])
+  }, [activeTeam])
 
   const showMessage = (text, type = 'success') => {
     setMessage({ text, type })
@@ -48,7 +52,7 @@ const Export = () => {
         db.gameLineups.where('gameId').equals(game.id).toArray(),
         db.gameEvents.where('gameId').equals(game.id).toArray()
       ])
-      exportGameCSV(game, players, lineups, events)
+      exportGameCSV(game, players, lineups, events, activeTeam?.teamName)
       setShowGameSelect(false)
       showMessage('Game exported successfully')
     } catch (err) {
@@ -58,9 +62,10 @@ const Export = () => {
 
   const handleExportPlayer = async (player) => {
     try {
+      const gameIds = games.map(g => g.id)
       const [lineups, events] = await Promise.all([
-        db.gameLineups.toArray(),
-        db.gameEvents.toArray()
+        gameIds.length > 0 ? db.gameLineups.where('gameId').anyOf(gameIds).toArray() : [],
+        gameIds.length > 0 ? db.gameEvents.where('gameId').anyOf(gameIds).toArray() : []
       ])
       exportPlayerCSV(player, games, lineups, events)
       setShowPlayerSelect(false)
@@ -72,11 +77,12 @@ const Export = () => {
 
   const handleExportSeason = async () => {
     try {
+      const gameIds = games.map(g => g.id)
       const [lineups, events] = await Promise.all([
-        db.gameLineups.toArray(),
-        db.gameEvents.toArray()
+        gameIds.length > 0 ? db.gameLineups.where('gameId').anyOf(gameIds).toArray() : [],
+        gameIds.length > 0 ? db.gameEvents.where('gameId').anyOf(gameIds).toArray() : []
       ])
-      exportSeasonSummaryCSV(players, games, lineups, events)
+      exportSeasonSummaryCSV(players, games, lineups, events, activeTeam?.teamName)
       showMessage('Season summary exported successfully')
     } catch (err) {
       showMessage('Failed to export season summary', 'error')
@@ -85,9 +91,9 @@ const Export = () => {
 
   const handleBackup = async () => {
     try {
-      const data = await exportAllData()
-      exportBackupJSON(data)
-      showMessage('Backup created successfully')
+      const data = await exportAllData(activeTeam?.id)
+      exportBackupJSON(data, activeTeam?.teamName)
+      showMessage(`Backup for ${activeTeam?.teamName} created`)
     } catch (err) {
       showMessage('Failed to create backup', 'error')
     }
@@ -118,13 +124,8 @@ const Export = () => {
       setRestoreData(null)
       showMessage('Data restored successfully')
 
-      // Reload data
-      const [playersData, gamesData] = await Promise.all([
-        getAllPlayers(),
-        getAllGames()
-      ])
-      setPlayers(playersData)
-      setGames(gamesData.filter(g => g.status === 'completed'))
+      // Refresh teams (this will also update activeTeam)
+      await refreshTeams()
     } catch (err) {
       showMessage('Failed to restore data: ' + err.message, 'error')
     }

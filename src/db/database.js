@@ -22,6 +22,82 @@ db.version(2).stores({
   })
 })
 
+// Version 3: Multi-team support - adds teams table and teamId to players/games
+db.version(3).stores({
+  teams: '++id, teamName, createdAt',
+  players: '++id, teamId, name, jerseyNumber, *positions',
+  games: '++id, teamId, date, opponent, status',
+  gameLineups: '++id, gameId, playerId, isStarter',
+  gameEvents: '++id, gameId, playerId, eventType, gameTime, linkedEventId'
+}).upgrade(async tx => {
+  // Check if there are any existing players or games to migrate
+  const existingPlayers = await tx.table('players').count()
+  const existingGames = await tx.table('games').count()
+
+  if (existingPlayers > 0 || existingGames > 0) {
+    // Create a default team for existing data
+    const teamId = await tx.table('teams').add({
+      teamName: 'My Team',
+      ageGroup: '',
+      coachName: '',
+      createdAt: new Date().toISOString()
+    })
+
+    // Assign existing players to the default team
+    await tx.table('players').toCollection().modify(player => {
+      player.teamId = teamId
+    })
+
+    // Assign existing games to the default team
+    await tx.table('games').toCollection().modify(game => {
+      game.teamId = teamId
+    })
+  }
+})
+
+// Team operations
+export const addTeam = async (team) => {
+  return await db.teams.add({
+    ...team,
+    createdAt: new Date().toISOString()
+  })
+}
+
+export const updateTeam = async (id, updates) => {
+  return await db.teams.update(id, updates)
+}
+
+export const deleteTeam = async (id) => {
+  // Delete all associated data
+  const players = await db.players.where('teamId').equals(id).toArray()
+  const games = await db.games.where('teamId').equals(id).toArray()
+
+  // Delete game events and lineups for each game
+  for (const game of games) {
+    await db.gameLineups.where('gameId').equals(game.id).delete()
+    await db.gameEvents.where('gameId').equals(game.id).delete()
+  }
+
+  // Delete players and games
+  await db.players.where('teamId').equals(id).delete()
+  await db.games.where('teamId').equals(id).delete()
+
+  // Delete the team
+  return await db.teams.delete(id)
+}
+
+export const getAllTeams = async () => {
+  return await db.teams.orderBy('createdAt').toArray()
+}
+
+export const getTeam = async (id) => {
+  return await db.teams.get(id)
+}
+
+export const getTeamCount = async () => {
+  return await db.teams.count()
+}
+
 // Player operations
 export const addPlayer = async (player) => {
   return await db.players.add(player)
@@ -35,7 +111,10 @@ export const deletePlayer = async (id) => {
   return await db.players.delete(id)
 }
 
-export const getAllPlayers = async () => {
+export const getAllPlayers = async (teamId = null) => {
+  if (teamId) {
+    return await db.players.where('teamId').equals(teamId).sortBy('jerseyNumber')
+  }
   return await db.players.orderBy('jerseyNumber').toArray()
 }
 
@@ -66,7 +145,11 @@ export const deleteGame = async (id) => {
   return await db.games.delete(id)
 }
 
-export const getAllGames = async () => {
+export const getAllGames = async (teamId = null) => {
+  if (teamId) {
+    const games = await db.games.where('teamId').equals(teamId).toArray()
+    return games.sort((a, b) => b.date.localeCompare(a.date))
+  }
   return await db.games.orderBy('date').reverse().toArray()
 }
 
@@ -140,34 +223,68 @@ export const getLastEvents = async (gameId, count = 3) => {
 }
 
 // Backup and restore
-export const exportAllData = async () => {
-  const players = await db.players.toArray()
-  const games = await db.games.toArray()
-  const gameLineups = await db.gameLineups.toArray()
-  const gameEvents = await db.gameEvents.toArray()
+export const exportAllData = async (teamId = null) => {
+  const teams = await db.teams.toArray()
+  let players, games
+
+  if (teamId) {
+    players = await db.players.where('teamId').equals(teamId).toArray()
+    games = await db.games.where('teamId').equals(teamId).toArray()
+  } else {
+    players = await db.players.toArray()
+    games = await db.games.toArray()
+  }
+
+  const gameIds = games.map(g => g.id)
+  const gameLineups = await db.gameLineups.where('gameId').anyOf(gameIds).toArray()
+  const gameEvents = await db.gameEvents.where('gameId').anyOf(gameIds).toArray()
 
   return {
-    version: 1,
+    version: 2,
     exportDate: new Date().toISOString(),
-    data: { players, games, gameLineups, gameEvents }
+    teamId: teamId || null,
+    data: { teams: teamId ? teams.filter(t => t.id === teamId) : teams, players, games, gameLineups, gameEvents }
   }
 }
 
 export const importAllData = async (backup) => {
-  if (backup.version !== 1) {
+  // Support both version 1 and 2 backups
+  if (backup.version !== 1 && backup.version !== 2) {
     throw new Error('Unsupported backup version')
   }
 
-  await db.transaction('rw', db.players, db.games, db.gameLineups, db.gameEvents, async () => {
-    await db.players.clear()
-    await db.games.clear()
-    await db.gameLineups.clear()
-    await db.gameEvents.clear()
+  await db.transaction('rw', db.teams, db.players, db.games, db.gameLineups, db.gameEvents, async () => {
+    // For v1 backups or full restore, clear everything
+    if (backup.version === 1 || !backup.teamId) {
+      await db.teams.clear()
+      await db.players.clear()
+      await db.games.clear()
+      await db.gameLineups.clear()
+      await db.gameEvents.clear()
 
-    if (backup.data.players?.length) await db.players.bulkAdd(backup.data.players)
-    if (backup.data.games?.length) await db.games.bulkAdd(backup.data.games)
-    if (backup.data.gameLineups?.length) await db.gameLineups.bulkAdd(backup.data.gameLineups)
-    if (backup.data.gameEvents?.length) await db.gameEvents.bulkAdd(backup.data.gameEvents)
+      // For v1 backups, create a default team and assign data to it
+      if (backup.version === 1) {
+        const teamId = await db.teams.add({
+          teamName: 'Imported Team',
+          ageGroup: '',
+          coachName: '',
+          createdAt: new Date().toISOString()
+        })
+
+        const playersWithTeam = (backup.data.players || []).map(p => ({ ...p, teamId }))
+        const gamesWithTeam = (backup.data.games || []).map(g => ({ ...g, teamId }))
+
+        if (playersWithTeam.length) await db.players.bulkAdd(playersWithTeam)
+        if (gamesWithTeam.length) await db.games.bulkAdd(gamesWithTeam)
+      } else {
+        if (backup.data.teams?.length) await db.teams.bulkAdd(backup.data.teams)
+        if (backup.data.players?.length) await db.players.bulkAdd(backup.data.players)
+        if (backup.data.games?.length) await db.games.bulkAdd(backup.data.games)
+      }
+
+      if (backup.data.gameLineups?.length) await db.gameLineups.bulkAdd(backup.data.gameLineups)
+      if (backup.data.gameEvents?.length) await db.gameEvents.bulkAdd(backup.data.gameEvents)
+    }
   })
 }
 

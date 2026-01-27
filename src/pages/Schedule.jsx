@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllGames, addGame, deleteGame } from '../db/database'
 import { formatDate, GAME_STATUS } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
@@ -9,6 +10,7 @@ import Modal from '../components/common/Modal'
 
 const Schedule = () => {
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -22,8 +24,9 @@ const Schedule = () => {
   })
 
   const loadGames = async () => {
+    if (!activeTeam) return
     try {
-      const allGames = await getAllGames()
+      const allGames = await getAllGames(activeTeam.id)
       setGames(allGames)
     } catch (err) {
       console.error('Failed to load games:', err)
@@ -33,13 +36,15 @@ const Schedule = () => {
   }
 
   useEffect(() => {
+    setLoading(true)
     loadGames()
-  }, [])
+  }, [activeTeam])
 
   const handleSubmit = async () => {
-    if (!formData.opponent.trim() || !formData.date) return
+    if (!formData.opponent.trim() || !formData.date || !activeTeam) return
 
     await addGame({
+      teamId: activeTeam.id,
       date: formData.date,
       opponent: formData.opponent.trim(),
       halfLength: parseInt(formData.halfLength) || 35

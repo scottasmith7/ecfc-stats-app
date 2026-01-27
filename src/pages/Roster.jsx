@@ -5,11 +5,13 @@ import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import { usePlayers } from '../hooks/usePlayers'
+import { useTeam } from '../context/TeamContext'
 import { POSITIONS } from '../utils/constants'
 
 const Roster = () => {
   const navigate = useNavigate()
-  const { players, loading, createPlayer, editPlayer, removePlayer } = usePlayers()
+  const { activeTeam } = useTeam()
+  const { players, loading, createPlayer, editPlayer, removePlayer } = usePlayers(activeTeam?.id)
   const [showModal, setShowModal] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)

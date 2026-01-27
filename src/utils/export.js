@@ -15,7 +15,7 @@ const downloadFile = (content, filename, type = 'text/csv') => {
 }
 
 // Export single game to CSV
-export const exportGameCSV = (game, players, lineups, events) => {
+export const exportGameCSV = (game, players, lineups, events, teamName = 'Team') => {
   const headers = [
     'Player', 'Number', 'Position', 'Time (MM:SS)', 'Seconds',
     'Passes', 'Pass%', 'Crosses', 'Cross%',
@@ -80,7 +80,7 @@ export const exportGameCSV = (game, players, lineups, events) => {
     : null
 
   const csv = [
-    `ECFC vs ${game.opponent} - ${formatDate(game.date)}`,
+    `${teamName} vs ${game.opponent} - ${formatDate(game.date)}`,
     `Final Score: ${game.homeScore} - ${game.awayScore}`,
     possession !== null ? `Team Possession: ${possession}%` : '',
     '',
@@ -88,7 +88,8 @@ export const exportGameCSV = (game, players, lineups, events) => {
     ...rows.map(row => row.join(','))
   ].join('\n')
 
-  const filename = `ECFC_vs_${game.opponent.replace(/\s+/g, '_')}_${game.date}.csv`
+  const safeTeamName = teamName.replace(/\s+/g, '_')
+  const filename = `${safeTeamName}_vs_${game.opponent.replace(/\s+/g, '_')}_${game.date}.csv`
   downloadFile(csv, filename)
 }
 
@@ -147,7 +148,7 @@ export const exportPlayerCSV = (player, games, allLineups, allEvents) => {
 }
 
 // Export season summary for all players
-export const exportSeasonSummaryCSV = (players, games, allLineups, allEvents) => {
+export const exportSeasonSummaryCSV = (players, games, allLineups, allEvents, teamName = 'Team') => {
   const headers = [
     'Player', 'Number', 'Position', 'Games', 'Time (MM:SS)', 'Seconds',
     'Passes', 'Pass%', 'Shots', 'Shot%', 'Scoring%', 'Goals', 'Assists',
@@ -204,20 +205,22 @@ export const exportSeasonSummaryCSV = (players, games, allLineups, allEvents) =>
   })
 
   const csv = [
-    'ECFC Season Summary',
+    `${teamName} Season Summary`,
     `Generated: ${new Date().toLocaleDateString()}`,
     '',
     headers.join(','),
     ...rows.map(row => row.join(','))
   ].join('\n')
 
-  downloadFile(csv, 'ECFC_season_summary.csv')
+  const safeTeamName = teamName.replace(/\s+/g, '_')
+  downloadFile(csv, `${safeTeamName}_season_summary.csv`)
 }
 
 // Export full backup as JSON
-export const exportBackupJSON = (data) => {
+export const exportBackupJSON = (data, teamName = 'Team') => {
   const json = JSON.stringify(data, null, 2)
-  const filename = `ECFC_backup_${new Date().toISOString().split('T')[0]}.json`
+  const safeTeamName = teamName.replace(/\s+/g, '_')
+  const filename = `${safeTeamName}_backup_${new Date().toISOString().split('T')[0]}.json`
   downloadFile(json, filename, 'application/json')
 }
 

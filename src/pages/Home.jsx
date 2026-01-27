@@ -2,19 +2,22 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllGames } from '../db/database'
 import { formatDate, GAME_STATUS } from '../utils/constants'
+import { useTeam } from '../context/TeamContext'
 import Header from '../components/layout/Header'
 import Navigation from '../components/layout/Navigation'
 import Button from '../components/common/Button'
 
 const Home = () => {
   const navigate = useNavigate()
+  const { activeTeam } = useTeam()
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const loadGames = async () => {
+      if (!activeTeam) return
       try {
-        const allGames = await getAllGames()
+        const allGames = await getAllGames(activeTeam.id)
         setGames(allGames)
       } catch (err) {
         console.error('Failed to load games:', err)
@@ -22,8 +25,9 @@ const Home = () => {
         setLoading(false)
       }
     }
+    setLoading(true)
     loadGames()
-  }, [])
+  }, [activeTeam])
 
   // Find current or next game
   const today = new Date().toISOString().split('T')[0]
@@ -48,7 +52,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen pb-20">
-      <Header title="ECFC Stats" />
+      <Header showTeamSwitcher />
 
       <main className="p-4 space-y-6">
         {/* Hero section */}
@@ -58,8 +62,10 @@ const Home = () => {
             alt="ECFC Logo"
             className="w-24 h-24 mx-auto mb-4 object-contain"
           />
-          <h2 className="text-2xl font-bold text-white">ECFC U16 Girls</h2>
-          <p className="text-slate-400">Stats Tracker</p>
+          <h2 className="text-2xl font-bold text-white">{activeTeam?.teamName}</h2>
+          <p className="text-slate-400">
+            {activeTeam?.ageGroup ? `${activeTeam.ageGroup} • ` : ''}Stats Tracker
+          </p>
         </div>
 
         {/* Current/Next Game Card */}
