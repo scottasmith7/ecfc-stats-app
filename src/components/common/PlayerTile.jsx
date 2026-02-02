@@ -1,6 +1,13 @@
 import { POSITIONS } from '../../utils/constants'
 import { formatPlayingTime } from '../../utils/stats'
 
+// Truncate name to fit tile
+const truncateName = (name, maxLength = 10) => {
+  if (!name) return ''
+  if (name.length <= maxLength) return name
+  return name.slice(0, maxLength - 1) + '…'
+}
+
 const PlayerTile = ({
   player,
   isSelected = false,
@@ -20,6 +27,14 @@ const PlayerTile = ({
     lg: 'min-w-[90px] min-h-[110px] p-3'
   }
 
+  const nameLengths = {
+    sm: 8,
+    md: 10,
+    lg: 12
+  }
+
+  const displayName = truncateName(player.name || player.firstName || '', nameLengths[size])
+
   return (
     <button
       onClick={() => onClick?.(player)}
@@ -31,8 +46,13 @@ const PlayerTile = ({
         active:scale-95
       `}
     >
-      {/* Jersey number */}
-      <span className="text-2xl font-bold text-white">
+      {/* Player name - primary */}
+      <span className="text-sm font-semibold text-white truncate w-full text-center">
+        {displayName}
+      </span>
+
+      {/* Jersey number - secondary */}
+      <span className="text-xs text-slate-400">
         #{player.jerseyNumber}
       </span>
 

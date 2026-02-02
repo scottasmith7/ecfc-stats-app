@@ -114,6 +114,13 @@ const PlayerGrid = ({
   )
 }
 
+// Truncate name to fit compact tile
+const truncateName = (name, maxLength = 8) => {
+  if (!name) return ''
+  if (name.length <= maxLength) return name
+  return name.slice(0, maxLength - 1) + '…'
+}
+
 // Compact player tile for landscape mode
 const CompactPlayerTile = ({
   player,
@@ -123,6 +130,8 @@ const CompactPlayerTile = ({
   miniStats = '-',
   onClick
 }) => {
+  const displayName = truncateName(player.name || player.firstName || '', 8)
+
   return (
     <button
       onClick={onClick}
@@ -133,14 +142,19 @@ const CompactPlayerTile = ({
         ${isOnBench ? 'opacity-50' : ''}
       `}
     >
-      {/* Jersey number */}
-      <span className="text-base font-bold text-white leading-none">
+      {/* Player name - primary */}
+      <span className="text-[11px] font-semibold text-white leading-none truncate w-full text-center">
+        {displayName}
+      </span>
+
+      {/* Jersey number - secondary */}
+      <span className="text-[9px] text-slate-400 leading-tight">
         #{player.jerseyNumber}
       </span>
 
       {/* Playing time */}
       {playingTime !== null && (
-        <span className="text-[9px] text-ecfc-green font-mono leading-tight mt-0.5">
+        <span className="text-[9px] text-ecfc-green font-mono leading-tight">
           {formatPlayingTime(playingTime)}
         </span>
       )}

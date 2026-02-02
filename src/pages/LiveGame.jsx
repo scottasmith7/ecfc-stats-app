@@ -19,40 +19,73 @@ import Button from '../components/common/Button'
 const checkIsLandscape = () => {
   if (typeof window === 'undefined') return false
 
-  // Method 1: Screen Orientation API (most reliable on modern mobile browsers)
-  if (screen.orientation?.type) {
-    return screen.orientation.type.includes('landscape')
-  }
+  const width = window.innerWidth
+  const height = window.innerHeight
 
-  // Method 2: window.orientation (deprecated but still works on older iOS)
-  if (typeof window.orientation === 'number') {
-    return Math.abs(window.orientation) === 90
+  // Method 1: Compare dimensions (most reliable across all browsers)
+  const dimensionCheck = width > height
+
+  // Method 2: Screen Orientation API
+  let orientationApiCheck = false
+  if (screen.orientation?.type) {
+    orientationApiCheck = screen.orientation.type.includes('landscape')
   }
 
   // Method 3: matchMedia query
+  let mediaQueryCheck = false
   if (window.matchMedia) {
-    const mediaQuery = window.matchMedia('(orientation: landscape)')
-    if (mediaQuery.matches) return true
+    mediaQueryCheck = window.matchMedia('(orientation: landscape)').matches
   }
 
-  // Method 4: Compare dimensions (fallback)
-  return window.innerWidth > window.innerHeight
+  // Method 4: window.orientation (deprecated but still works on older iOS)
+  let windowOrientationCheck = false
+  if (typeof window.orientation === 'number') {
+    windowOrientationCheck = Math.abs(window.orientation) === 90
+  }
+
+  // Use OR logic - if ANY method says landscape, treat it as landscape
+  const isLandscape = dimensionCheck || orientationApiCheck || mediaQueryCheck || windowOrientationCheck
+
+  // Debug logging
+  console.log('[Orientation Debug]', {
+    width,
+    height,
+    dimensionCheck,
+    orientationApiCheck,
+    orientationType: screen.orientation?.type,
+    mediaQueryCheck,
+    windowOrientationCheck,
+    windowOrientation: window.orientation,
+    finalResult: isLandscape
+  })
+
+  return isLandscape
 }
 
 // Hook to detect landscape orientation with multiple methods
 const useIsLandscape = () => {
-  const [isLandscape, setIsLandscape] = useState(checkIsLandscape)
+  const [isLandscape, setIsLandscape] = useState(() => checkIsLandscape())
 
   useEffect(() => {
+    // Check immediately on mount
+    console.log('[Orientation] Initial check on mount')
+    setIsLandscape(checkIsLandscape())
+
     const updateOrientation = () => {
-      // Small delay to let the browser finish rotation
+      // Check immediately
+      const immediate = checkIsLandscape()
+      setIsLandscape(immediate)
+
+      // Also check after a small delay to catch browser finishing rotation
       setTimeout(() => {
+        console.log('[Orientation] Delayed re-check')
         setIsLandscape(checkIsLandscape())
-      }, 100)
+      }, 150)
     }
 
     // Listen to Screen Orientation API
     if (screen.orientation) {
+      console.log('[Orientation] Adding screen.orientation listener')
       screen.orientation.addEventListener('change', updateOrientation)
     }
 
@@ -60,15 +93,17 @@ const useIsLandscape = () => {
     let mediaQuery = null
     if (window.matchMedia) {
       mediaQuery = window.matchMedia('(orientation: landscape)')
+      console.log('[Orientation] Adding matchMedia listener')
       mediaQuery.addEventListener('change', updateOrientation)
     }
 
-    // Fallback listeners
+    // Resize event (fires on rotation)
+    console.log('[Orientation] Adding resize listener')
     window.addEventListener('resize', updateOrientation)
-    window.addEventListener('orientationchange', updateOrientation)
 
-    // Initial check after mount
-    updateOrientation()
+    // Legacy orientationchange event
+    console.log('[Orientation] Adding orientationchange listener')
+    window.addEventListener('orientationchange', updateOrientation)
 
     return () => {
       if (screen.orientation) {
